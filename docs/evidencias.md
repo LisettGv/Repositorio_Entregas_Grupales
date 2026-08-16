@@ -1,174 +1,118 @@
-# Evidencias · Laboratorio API Gateway
+# Evidencias de Laboratorio 1: API Gateway
 
-## Integrantes
-- Nombre:
-- Nombre:
-- Nombre:
+## 1. Acceso Directo al Backend vs Gateway
 
-## 1. Backend directo
-
-Antes de utilizar el gateway, registrar las pruebas directas contra JSONPlaceholder.
-
-| Método | URL | Status | Observación |
-|---|---|---:|---|
-| GET | `https://jsonplaceholder.typicode.com/posts` | | |
-| GET | `https://jsonplaceholder.typicode.com/posts/1` | | |
-
-**¿Qué información del backend conoce el cliente en este escenario?**
-
-Respuesta:
-
----
-
-## 2. Arquitectura final
-
-```mermaid
-flowchart LR
-    WEB[Cliente web :5500]
-    P[Postman]
-    G[Spring Cloud Gateway :8080]
-    B[JSONPlaceholder]
-
-    WEB --> G
-    P --> G
-    G --> B
-    B --> G
-    G --> WEB
-    G --> P
+### Petición directa al backend
+- **URL**: `https://jsonplaceholder.typicode.com/posts/1`
+- **Método**: `GET`
+- **Status Code**: `200 OK`
+- **Body recibido**:
+```json
+{
+  "userId": 1,
+  "id": 1,
+  "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+  "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderi"
+}
 ```
 
-Explicar brevemente qué responsabilidad cumple cada componente.
+## 2. Pruebas HTTP mediante el Gateway (Richardson Maturity Model Nivel 2)
+GET - Obtener recurso individual
+URL: http://localhost:8080/api/v1/posts/1
 
----
+### Método: GET
 
-## 3. Pruebas HTTP mediante gateway
+Status Code: 200 OK
 
-| Método | URL | Status | Headers relevantes | Interpretación |
-|---|---|---:|---|---|
-| GET | `/api/v1/posts` | | | colección |
-| GET | `/api/v1/posts/1` | | | recurso individual |
-| POST | `/api/v1/posts` | | | creación simulada |
-| PUT | `/api/v1/posts/1` | | | actualización simulada |
-| DELETE | `/api/v1/posts/1` | | | eliminación simulada |
+Body recibido:
+{
+  "userId": 1,
+  "id": 1,
+  "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+  "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderi"
+}
 
-Para POST y PUT incluir también el body enviado.
+### POST - Crear recurso
+URL: http://localhost:8080/api/v1/posts
 
----
+Método: POST
 
-## 4. Routing
+Status Code: 201 Created
 
-- URL solicitada por el cliente:
-- `id` de la route:
-- predicate que hizo match:
-- URI/integration configurada:
-- path recibido finalmente por el backend:
-- función de `RewritePath`:
+Body enviado:
+{
+  "title": "Cloud Native",
+  "body": "Laboratorio API Gateway",
+  "userId": 1
+}
 
-### Recorrido de una petición
+### PUT - Actualizar recurso
+URL: http://localhost:8080/api/v1/posts/1
 
-Explicar con sus palabras:
+Método: PUT
 
-```text
-cliente → gateway → backend → gateway → cliente
-```
+Status Code: 200 OK
 
----
+Body enviado:
+{
+  "id": 1,
+  "title": "Cloud Native actualizado",
+  "body": "Prueba PUT mediante gateway",
+  "userId": 1
+}
 
-## 5. Versionado
+### DELETE - Eliminar recurso
+URL: http://localhost:8080/api/v1/posts/1
 
-- Evidencia `/api/v1`:
-- Header `X-API-Version` observado:
-- Evidencia `/api/v2`:
-- Header `X-API-Version` observado:
+Método: DELETE
 
-Responder:
+Status Code: 200 OK
 
-1. ¿Por qué mantener v1 y v2 simultáneamente?
-2. ¿Qué consumidores podrían seguir usando v1?
-3. ¿Cuándo retirarían una versión?
-4. ¿Versionar el contrato público es lo mismo que versionar el servidor desplegado?
+## 3. Evidencia de Versionado y Headers Globales
+Ruta V1 (/api/v1/posts/1)
+Headers de respuesta:
 
----
+### X-API-Version: v1
 
-## 6. Header transversal
+X-Gateway-Lab: DSY1107
 
-- Header esperado: `X-Gateway-Lab: DSY1107`
-- Evidencia observada:
-- ¿Por qué este comportamiento puede considerarse transversal?:
+Ruta V2 (/api/v2/posts/1)
+Headers de respuesta:
 
----
+### X-API-Version: v2
 
-## 7. CORS
+X-Gateway-Lab: DSY1107
 
-### Antes de configurar CORS
+### 4. Pruebas y Evidencia de CORS desde el Navegador
+Comportamiento PREVIO a la configuración de CORS
+Al intentar realizar la petición desde la interfaz web en http://127.0.0.1:5500, el navegador bloqueó la llamada por la política de mismo origen (Same-Origin Policy), mostrando el siguiente error en la consola:
 
-- URL del cliente web: `http://localhost:5500`
-- Endpoint consultado:
-- Resultado visible:
-- Mensaje relevante en Console/Network:
+Access to fetch at 'http://localhost:8080/api/v1/posts/1' from origin 'http://127.0.0.1:5500' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
 
-### Después de configurar CORS
+Comportamiento POSTERIOR a la configuración de CORS
+Tras habilitar la política CORS en application.yml especificando el origen http://127.0.0.1:5500 y reiniciando el Gateway, la consulta desde el navegador respondió exitosamente con status 200 OK, mostrando el objeto JSON en pantalla y sin errores en la consola.
 
-- Resultado visible:
-- `Access-Control-Allow-Origin`:
-- `Access-Control-Allow-Methods`:
+Prueba Preflight (OPTIONS)
+Comando ejecutado desde consola:
+curl -i -X OPTIONS http://localhost:8080/api/v1/posts \
+  -H "Origin: [http://127.0.0.1:5500](http://127.0.0.1:5500)" \
+  -H "Access-Control-Request-Method: POST"
+Headers de control de acceso retornados por el Gateway:
 
-### Preflight OPTIONS
+Access-Control-Allow-Origin: http://127.0.0.1:5500
 
-- Request utilizado:
-- Status:
-- Headers relevantes:
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
 
-Responder:
+#### 5. Recorrido de la Petición
+El cliente (navegador/Postman) envía la petición a http://localhost:8080/api/v1/posts/1.
 
-1. ¿Por qué Postman puede funcionar cuando el navegador falla?
-2. ¿Qué es un preflight?
-3. ¿CORS autentica o autoriza usuarios?
-4. ¿Qué riesgo tendría permitir cualquier origen sin analizar el contexto?
+Spring Cloud Gateway evalúa el Predicate Path=/api/v1/posts/**.
 
----
+El filtro RewritePath transforma la URL a /posts/1.
 
-## 8. Richardson Maturity Model nivel 2
+El Gateway redirige la petición al backend en https://jsonplaceholder.typicode.com/posts/1.
 
-Explicar qué elementos observados en el laboratorio permiten afirmar que la API utiliza recursos, métodos HTTP y status codes con semántica HTTP.
+El backend responde con los datos y el Gateway intercepta la respuesta, inyectando los headers X-API-Version: v1 y X-Gateway-Lab: DSY1107.
 
----
+El Gateway entrega la respuesta final al cliente.
 
-## 9. Responsabilidades
-
-| Responsabilidad | Cliente | Gateway | Backend | Justificación |
-|---|:---:|:---:|:---:|---|
-| routing | | | | |
-| lógica de negocio | | | | |
-| autenticación/autorización | | | | |
-| transformación de rutas | | | | |
-| persistencia | | | | |
-| rate limiting | | | | |
-| reglas de negocio | | | | |
-| observabilidad | | | | |
-
----
-
-## 10. Problemas encontrados
-
-1. Problema:
-   - causa:
-   - solución:
-
----
-
-## 11. Colaboración GitHub
-
-| Integrante | Rama | Pull Request | Aporte principal |
-|---|---|---|---|
-| | | | |
-
-Agregar enlaces a los Pull Requests.
-
----
-
-## 12. Conclusiones
-
-- ¿Qué problema resolvió el gateway?
-- ¿Qué concepto del laboratorio sería equivalente al trabajar posteriormente con Amazon API Gateway?
-- ¿Qué aprendió el grupo que no depende específicamente de Spring Cloud Gateway?
